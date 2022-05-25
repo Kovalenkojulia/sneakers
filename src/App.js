@@ -1,86 +1,125 @@
 import React from "react";
+import { Routes, Route } from "react-router-dom";
+import axios from "axios";
+
+import Drawer from "./components/Drawer";
+import Header from "./components/Header.jsx";
+import Home from "./pages/Home";
+import Favorites from "./pages/Favorites";
+import { isContentEditable } from "@testing-library/user-event/dist/utils";
+
 function App() {
+  const [items, setItems] = React.useState([]);
+  const [cartItems, setCartItems] = React.useState([]);
+  const [favorites, setFavorites] = React.useState([]);
+  const [searchValue, setSearchValue] = React.useState("");
+  const [cartOpened, setCartOpened] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    async function fetchData() {
+      setIsLoading(true);
+      const cartResponse = await axios.get(
+        "https://62894c415da6ddfd5d56e7d4.mockapi.io/cart"
+      );
+
+      const favoritesResponse = await axios.get(
+        "https://62894c415da6ddfd5d56e7d4.mockapi.io/favorites"
+      );
+      const itemsResponse = await axios.get(
+        "https://62894c415da6ddfd5d56e7d4.mockapi.io/items"
+      );
+
+      setIsLoading(false);
+
+      setCartItems(cartResponse.data);
+      setFavorites(favoritesResponse.data);
+      setItems(itemsResponse.data);
+    }
+    fetchData();
+  }, []);
+
+  const onAddToCart = (obj) => {
+    if (cartItems.find((item) => Number(item.id) === Number(obj.id))) {
+      axios.delete(
+        `https://62894c415da6ddfd5d56e7d4.mockapi.io/cart/${obj.id}`
+      );
+
+      setCartItems((prev) =>
+        prev.filter((item) => Number(item.id) !== Number(obj.id))
+      );
+    } else {
+      axios.post("https://62894c415da6ddfd5d56e7d4.mockapi.io/cart", obj);
+
+      setCartItems((prev) => [...prev, obj]);
+    }
+  };
+
+  const onRemoveItem = (id) => {
+    axios.delete(`https://62894c415da6ddfd5d56e7d4.mockapi.io/cart/${id}`);
+
+    setCartItems((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const onAddToFavorite = async (obj) => {
+    try {
+      if (favorites.find((favObj) => favObj.id === obj.id)) {
+        axios.delete(
+          `https://62894c415da6ddfd5d56e7d4.mockapi.io/favorites/${obj.id}`
+        );
+        setFavorites((prev) => prev.filter((item) => item.id === obj.id));
+      } else {
+        const { data } = await axios.post(
+          "https://62894c415da6ddfd5d56e7d4.mockapi.io/favorites",
+          obj
+        );
+        setFavorites((prev) => [...prev, data]);
+      }
+    } catch (error) {
+      alert("Don't add to favorite!");
+    }
+  };
+
+  const onChangeSearchInput = (event) => {
+    setSearchValue(event.target.value);
+  };
+
   return (
     <div className="wrapper clear">
-      <header className="d-flex justify-between align-center p-40">
-        <div className="d-flex align-center">
-          <img alt="Logo" width={40} height={40} src="/img/logo.png" />
-          <div>
-            <h3 className="text-uppercase">REACT SNEAKERS</h3>
-            <p className="opacity-5">Магазин лучших кроссовок</p>
-          </div>
-        </div>
-        <ul className="d-flex">
-          <li className="mr-30">
-            <img alt="Card" width={18} height={18} src="/img/card.svg" />
-            <span>1205$</span>
-          </li>
-          <li>
-            <img alt="User" width={18} height={18} src="/img/user.svg" />
-          </li>
-        </ul>
-      </header>
-      <div className="content p-40">
-        <h1 className="mb-40">All Sneakers</h1>
+      {cartOpened && (
+        <Drawer
+          items={cartItems}
+          onClose={() => setCartOpened(false)}
+          onRemove={onRemoveItem}
+        />
+      )}
 
-        <div className="d-flex">
-          <div className="card">
-            <img
-              width={133}
-              height={112}
-              src="img/sneakers/1.jpg"
-              alt="Sneakers"
-            />
-            <h5>Nike Blazer Mid Suede</h5>
-            <div className="d-flex justify-between align-center">
-              <div className="d-flex flex-column ">
-                <span>Price:</span>
-                <b>1999 $</b>
-              </div>
-              <button className="button">
-                <img width={11} height={11} src="/img/plus.svg" alt="Plus" />
-              </button>
-            </div>
-          </div>
+      <Header onClickCart={() => setCartOpened(true)} />
 
-          <div className="card">
-            <img
-              width={133}
-              height={112}
-              src="img/sneakers/2.jpg"
-              alt="Sneakers"
+      <Routes>
+        <Route
+          path="/"
+          exact
+          element={
+            <Home
+              items={items}
+              cartItems={cartItems}
+              searchValue={searchValue}
+              setSearchValue={setSearchValue}
+              onChangeSearchInput={onChangeSearchInput}
+              onAddToFavorite={onAddToFavorite}
+              onAddToCart={onAddToCart}
+              isLoading={isLoading}
             />
-            <h5>Nike Blazer Mid Suede</h5>
-            <div className="d-flex justify-between align-center">
-              <div className="d-flex flex-column ">
-                <span>Price:</span>
-                <b>1999 $</b>
-              </div>
-              <button className="button">
-                <img width={11} height={11} src="/img/plus.svg" alt="Plus" />
-              </button>
-            </div>
-          </div>
-          <div className="card">
-            <img
-              width={133}
-              height={112}
-              src="img/sneakers/3.jpg"
-              alt="Sneakers"
-            />
-            <h5>Nike Blazer Mid Suede</h5>
-            <div className="d-flex justify-between align-center">
-              <div className="d-flex flex-column ">
-                <span>Price:</span>
-                <b>1999 $</b>
-              </div>
-              <button className="button">
-                <img width={11} height={11} src="/img/plus.svg" alt="Plus" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+          }
+        />
+        <Route
+          path="favorites"
+          element={
+            <Favorites items={favorites} onAddToFavorite={onAddToFavorite} />
+          }
+        />
+      </Routes>
     </div>
   );
 }
